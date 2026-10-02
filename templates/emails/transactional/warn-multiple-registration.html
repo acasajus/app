@@ -7,11 +7,39 @@
   {% endcall %}
 
   {% call text() %}
-    You have tried to register multiple times to {{ service }}, and this is against the terms of service of SimpleLogin. Please don't do that anymore.
+    Our system has detected that your account used multiple aliases (two or more) on {{ service|e }}. This activity is against SimpleLogin's anti-abuse Terms of Service (ToS).
   {% endcall %}
 
   {% call text() %}
-    If you continue registering multiple accounts to a single service we will have to disable your account.
+    Please note that users should use only one alias per platform.
+  {% endcall %}
+
+  {% call text() %}
+    Your account has not been suspended at this time. However, repeated violations may result in the suspension of the following services:
+    <ul>
+      <li>SimpleLogin "Email Forwarding" service</li>
+      <li>SimpleLogin "Email Alias" service</li>
+    </ul>
+  {% endcall %}
+
+  {% call text() %}
+    To avoid suspension, please log in to your Alias Dashboard and delete any redundant aliases, keeping no more than one alias for each platform:
+    <br />
+    <a href="https://app.simplelogin.io/dashboard/">https://app.simplelogin.io/dashboard/</a>
+  {% endcall %}
+
+  {% call text() %}
+    If you believe this warning was triggered because someone used your catch-all aliases without your permission, or if you have any questions about this warning, please contact our Support team:
+    <br />
+    <a href="https://proton.me/support/contact?topic=SimpleLogin">https://proton.me/support/contact?topic=SimpleLogin</a>
+  {% endcall %}
+
+  {% call text() %}
+    Best regards,
+    <br />
+    Anti-Abuse Team
+    <br />
+    Proton Pass / SimpleLogin
   {% endcall %}
 
 {% endblock %}

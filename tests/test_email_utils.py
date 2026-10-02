@@ -49,6 +49,7 @@ from app.email_utils import (
     get_noreply_address,
     get_noreply_email,
     get_noreply_domain,
+    render,
     sl_formataddr,
 )
 from app.email_validation import is_valid_email, normalize_reply_email
@@ -1208,3 +1209,90 @@ def test_get_noreply_domain_partner_user(flask_client):
     with patch.object(config, "PARTNER_NOREPLY_EMAIL", "partner-noreply@partner.lan"):
         domain = get_noreply_domain(user)
         assert domain == "partner.lan"
+
+
+WARN_MULTIPLE_REGISTRATION_EXPECTED_TEXT = """Hello,
+
+Our system has detected that your account used multiple aliases (two or more) on Acme. This activity is against SimpleLogin's anti-abuse Terms of Service (ToS).
+
+Please note that users should use only one alias per platform.
+
+Your account has not been suspended at this time. However, repeated violations may result in the suspension of the following services:
+
+- SimpleLogin "Email Forwarding" service
+- SimpleLogin "Email Alias" service
+
+To avoid suspension, please log in to your Alias Dashboard and delete any redundant aliases, keeping no more than one alias for each platform:
+
+https://app.simplelogin.io/dashboard/
+
+If you believe this warning was triggered because someone used your catch-all aliases without your permission, or if you have any questions about this warning, please contact our Support team:
+
+https://proton.me/support/contact?topic=SimpleLogin
+
+Best regards,
+Anti-Abuse Team
+Proton Pass / SimpleLogin"""
+
+
+def _normalize_whitespace(text: str) -> str:
+    return "\n".join(line.strip() for line in text.splitlines()).strip()
+
+
+def test_warn_multiple_registration_text_matches_expected_copy(flask_client):
+    user = create_new_user()
+    rendered = render(
+        "transactional/warn-multiple-registration.txt.jinja2",
+        user=user,
+        service="Acme",
+    )
+    assert _normalize_whitespace(rendered) == WARN_MULTIPLE_REGISTRATION_EXPECTED_TEXT
+    # the text base sign-off must not be appended to this standalone template
+    assert "SimpleLogin team." not in rendered
+
+
+def test_warn_multiple_registration_html_contains_new_copy(flask_client):
+    user = create_new_user()
+    html_output = render(
+        "transactional/warn-multiple-registration.html",
+        user=user,
+        service="Acme",
+    )
+    assert "multiple aliases (two or more) on Acme" in html_output
+    assert "Anti-Abuse Team" in html_output
+    assert "Proton Pass / SimpleLogin" in html_output
+    assert 'href="https://app.simplelogin.io/dashboard/"' in html_output
+    assert 'href="https://proton.me/support/contact?topic=SimpleLogin"' in html_output
+    assert "<li>" in html_output
+    assert 'SimpleLogin "Email Forwarding" service' in html_output
+    assert 'SimpleLogin "Email Alias" service' in html_output
+    # old copy is gone
+    assert "register multiple times" not in html_output
+    assert "disable your account" not in html_output
+    # base_sl footer kept
+    assert "©" in html_output
+
+
+def test_warn_multiple_registration_html_partner_layout(flask_client):
+    user = create_new_user()
+    html_output = render(
+        "transactional/warn-multiple-registration.html",
+        user=user,
+        service="Acme",
+        service_provider="Proton",
+    )
+    assert "multiple aliases (two or more) on Acme" in html_output
+    assert "Anti-Abuse Team" in html_output
+    assert 'href="https://app.simplelogin.io/dashboard/"' in html_output
+    assert "register multiple times" not in html_output
+
+
+def test_warn_multiple_registration_html_escapes_service(flask_client):
+    user = create_new_user()
+    html_output = render(
+        "transactional/warn-multiple-registration.html",
+        user=user,
+        service="<b>x</b>",
+    )
+    assert "&lt;b&gt;x&lt;/b&gt;" in html_output
+    assert "on <b>x</b>" not in html_output
